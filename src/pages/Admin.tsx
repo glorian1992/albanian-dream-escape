@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -9,6 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { restaurants } from '@/data/restaurants';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 // Mock data for pending restaurant registrations
 const pendingRestaurants = [
@@ -65,6 +71,22 @@ const subscriptions = [
     revenue: 312.50
   }
 ];
+
+const restaurantFormSchema = z.object({
+  name: z.string().min(2),
+  location: z.string().min(2),
+  cuisine: z.string().min(2),
+  description: z.string().min(10),
+  priceRange: z.string(),
+  contact: z.string()
+});
+
+const subscriptionFormSchema = z.object({
+  name: z.string().min(2),
+  price: z.number().min(0.01),
+  period: z.string(),
+  description: z.string().optional()
+});
 
 const AdminLoginForm = ({ onLogin }: { onLogin: () => void }) => {
   const [username, setUsername] = useState("");
@@ -133,6 +155,30 @@ const AdminLoginForm = ({ onLogin }: { onLogin: () => void }) => {
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+  const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
+  const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
+  
+  const restaurantForm = useForm<z.infer<typeof restaurantFormSchema>>({
+    resolver: zodResolver(restaurantFormSchema),
+    defaultValues: {
+      name: "",
+      location: "",
+      cuisine: "",
+      description: "",
+      priceRange: "",
+      contact: ""
+    }
+  });
+
+  const subscriptionForm = useForm<z.infer<typeof subscriptionFormSchema>>({
+    resolver: zodResolver(subscriptionFormSchema),
+    defaultValues: {
+      name: "",
+      price: 0,
+      period: "",
+      description: ""
+    }
+  });
   
   const handleApproveRestaurant = (id: string) => {
     toast({
@@ -146,6 +192,46 @@ const Admin = () => {
       title: "Restaurant rejected",
       description: `Restaurant ID: ${id} has been rejected.`,
     });
+  };
+  
+  const handleEditRestaurant = (restaurant: any) => {
+    setSelectedRestaurant(restaurant);
+    restaurantForm.reset({
+      name: restaurant.name,
+      location: restaurant.location,
+      cuisine: restaurant.cuisine,
+      description: restaurant.description,
+      priceRange: restaurant.priceRange,
+      contact: restaurant.contact
+    });
+  };
+
+  const handleSaveRestaurant = (data: z.infer<typeof restaurantFormSchema>) => {
+    console.log("Saving restaurant changes:", data);
+    toast({
+      title: "Restaurant updated",
+      description: `Restaurant ${data.name} has been updated successfully.`,
+    });
+    setSelectedRestaurant(null);
+  };
+
+  const handleManagePlan = (subscription: any) => {
+    setSelectedSubscription(subscription);
+    subscriptionForm.reset({
+      name: subscription.name,
+      price: subscription.price,
+      period: subscription.period,
+      description: ""
+    });
+  };
+
+  const handleSaveSubscription = (data: z.infer<typeof subscriptionFormSchema>) => {
+    console.log("Saving subscription changes:", data);
+    toast({
+      title: "Subscription plan updated",
+      description: `Subscription plan ${data.name} has been updated successfully.`,
+    });
+    setSelectedSubscription(null);
   };
   
   return (
@@ -280,7 +366,108 @@ const Admin = () => {
                             <p className="text-sm">Cuisine: {restaurant.cuisine}</p>
                             <p className="text-sm">Rating: {restaurant.rating}/5</p>
                           </div>
-                          <Button variant="outline">Edit Details</Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" onClick={() => handleEditRestaurant(restaurant)}>
+                                Edit Details
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px]">
+                              <DialogHeader>
+                                <DialogTitle>Edit Restaurant Details</DialogTitle>
+                                <DialogDescription>
+                                  Make changes to the restaurant information below.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <Form {...restaurantForm}>
+                                <form onSubmit={restaurantForm.handleSubmit(handleSaveRestaurant)} className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                      control={restaurantForm.control}
+                                      name="name"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Name</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={restaurantForm.control}
+                                      name="location"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Location</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={restaurantForm.control}
+                                      name="cuisine"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Cuisine</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={restaurantForm.control}
+                                      name="priceRange"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Price Range</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={restaurantForm.control}
+                                      name="contact"
+                                      render={({ field }) => (
+                                        <FormItem className="col-span-2">
+                                          <FormLabel>Contact</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+                                  <FormField
+                                    control={restaurantForm.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                          <Textarea {...field} rows={4} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <DialogFooter>
+                                    <Button type="submit">Save Changes</Button>
+                                  </DialogFooter>
+                                </form>
+                              </Form>
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </CardContent>
                     </Card>
@@ -336,7 +523,105 @@ const Admin = () => {
                               <p>${subscription.revenue.toFixed(2)}</p>
                             </div>
                             <div className="flex justify-end items-center">
-                              <Button variant="outline">Manage Plan</Button>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" onClick={() => handleManagePlan(subscription)}>
+                                    Manage Plan
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Manage Subscription Plan</DialogTitle>
+                                    <DialogDescription>
+                                      Make changes to the subscription plan details below.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <Form {...subscriptionForm}>
+                                    <form onSubmit={subscriptionForm.handleSubmit(handleSaveSubscription)} className="space-y-4">
+                                      <FormField
+                                        control={subscriptionForm.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Plan Name</FormLabel>
+                                            <FormControl>
+                                              <Input {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                          control={subscriptionForm.control}
+                                          name="price"
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel>Price</FormLabel>
+                                              <FormControl>
+                                                <Input 
+                                                  type="number" 
+                                                  step="0.01" 
+                                                  onChange={e => field.onChange(parseFloat(e.target.value))}
+                                                  value={field.value}
+                                                />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                        <FormField
+                                          control={subscriptionForm.control}
+                                          name="period"
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel>Billing Period</FormLabel>
+                                              <FormControl>
+                                                <Input {...field} placeholder="monthly, yearly, per booking..." />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                      </div>
+                                      <FormField
+                                        control={subscriptionForm.control}
+                                        name="description"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Description</FormLabel>
+                                            <FormControl>
+                                              <Textarea {...field} rows={4} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>Statistic</TableHead>
+                                            <TableHead>Value</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          <TableRow>
+                                            <TableCell>Active Subscribers</TableCell>
+                                            <TableCell>{selectedSubscription?.active || 0}</TableCell>
+                                          </TableRow>
+                                          <TableRow>
+                                            <TableCell>Monthly Revenue</TableCell>
+                                            <TableCell>${selectedSubscription?.revenue.toFixed(2) || 0}</TableCell>
+                                          </TableRow>
+                                        </TableBody>
+                                      </Table>
+                                      <DialogFooter>
+                                        <Button type="submit">Save Changes</Button>
+                                      </DialogFooter>
+                                    </form>
+                                  </Form>
+                                </DialogContent>
+                              </Dialog>
                             </div>
                           </div>
                         </CardContent>
